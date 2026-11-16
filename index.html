@@ -451,7 +451,7 @@ function render(){
  $('#kt').hidden=cat.id!=='ups';
  if(cat.id==='ups'){const n={'':rows.length,UPS:0,STS:0};rows.forEach(r=>n[kindOf(r)]++);$('#kt').innerHTML=[['','ทั้งหมด'],['UPS','UPS'],['STS','STS']].map(([k,l])=>`<button class="btn${upsTab===k?'':' g'}" data-k="${k}">${l} ${n[k]}</button>`).join('')}
  const hasSeed=SEED[cat.id]&&db&&!rows.length;
- note(gnote()+(hasSeed&&canEdit?`ยังไม่มีข้อมูลในหมวดนี้ — <button class="btn" id="seed">นำเข้าข้อมูลตั้งต้นจากไฟล์ Excel (${SEED[cat.id].length} รายการ)</button>`:(db&&!canEdit?'โหมดผู้เยี่ยมชม (ดูอย่างเดียว) — กด “แก้ไขข้อมูล · เข้าสู่ระบบ” ด้านบนเพื่อแก้ไข':'')));
+ note(gnote()+(hasSeed&&canEdit?`ยังไม่มีข้อมูลในหมวดนี้ — <button class="btn" id="seed">นำเข้าข้อมูลตั้งต้นจากไฟล์ Excel (${SEED[cat.id].length} รายการ)</button>`:(db&&!canEdit?'โหมดผู้เยี่ยมชม — กด “แก้ไขข้อมูล · เข้าสู่ระบบ” ด้านบนเพื่อแก้ไข':'')));
  if($('#seed'))$('#seed').onclick=seed;if($('#gfill'))$('#gfill').onclick=gfill;
  const fk=cat.flt,fo=[...new Set(rows.map(r=>r[fk]).filter(v=>v!=null&&v!==''))].sort();
  const cur=$('#flt').dataset.cat===cat.id?$('#flt').value:'';
