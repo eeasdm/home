@@ -298,6 +298,10 @@ function renderMaster(){
  h+=DATA.lines.slice().sort((a,b)=>nat(a.name,b.name)).map(l=>{const n=nz(l.name),k=DATA.loadcenter.filter(x=>nz(x.f4)===n).length;return`<div class="mr"><b>${esc(n)}</b><span class="ch">${k} ตู้</span><span class="sp"></span>${ib('renl',0,'✎',n,'','')}${ib('dell',0,'✕',n,'','')}</div>`}).join('')||'<div class="mr mu">ยังไม่มี Line</div>';
  $('#mst').innerHTML=h+'</div>';
 }
+const BRANDS0=['ABB','Square D','Crabtree'],bkey=v=>nz(v).toLowerCase().replace(/[\s._-]+/g,'');
+function brandList(cur){const m=new Map();BRANDS0.forEach(b=>m.set(bkey(b),b));DATA.loadcenter.forEach(x=>{const v=nz(x.f6);if(v&&!m.has(bkey(v)))m.set(bkey(v),v)});cur=nz(cur);if(cur&&!m.has(bkey(cur)))m.set(bkey(cur),cur);return[...m.values()]}
+function fillBrand(s,cur){cur=nz(cur);const o=brandList(cur),k=bkey(cur),sel=o.find(v=>bkey(v)===k)||'';s.innerHTML='<option value="">— ไม่ระบุ —</option>'+o.map(v=>`<option${v===sel?' selected':''}>${esc(v)}</option>`).join('')+(canEdit?'<option value="__new">＋ เพิ่มยี่ห้อใหม่…</option>':'');s.value=sel;s.dataset.prev=sel}
+async function brandChange(s){if(s.value==='__new'){const n=nz(await ask('ชื่อยี่ห้อตู้ Load Center ใหม่ (เช่น Schneider, Siemens)'));fillBrand(s,n||s.dataset.prev)}}
 function fillLine(s,cur){cur=nz(cur);const o=DATA.lines.map(l=>nz(l.name)).filter(Boolean).sort(nat);if(cur&&!o.includes(cur))o.push(cur);s.innerHTML='<option value="">— ไม่ระบุ —</option>'+o.map(v=>`<option${v===cur?' selected':''}>${esc(v)}</option>`).join('')+(canEdit?'<option value="__new">＋ เพิ่ม Line ใหม่…</option>':'');s.value=cur;s.dataset.prev=cur}
 function fillLoc(){const K=LOC[cat.id],[b,f]=editing.loc,P=DATA.places,u=a=>[...new Set(a.filter(v=>v!==''))].sort(nat);
  const L=[u(P.map(p=>nz(p.bld))),u(P.filter(p=>nz(p.bld)===b).map(p=>nz(p.flr))),u(P.filter(p=>nz(p.bld)===b&&(K[1]?nz(p.flr)===f:nz(p.flr)==='')).map(p=>nz(p.room)))];
@@ -310,7 +314,7 @@ function relHtml(r){const k=siteKey(r.bld);if(!k)return'';let h='';
   const cc=CATS.find(z=>z.id===c);h+=`<div class="mu">${t}: `+a.map(x=>`<a class="lk" data-go="${x._id}" data-c="${c}">${esc([x[cc.list[0]],x[cc.list[1]]].filter(Boolean).join(' ')||'(ไม่มีชื่อ)')}</a>`).join(' · ')+'</div>'});
  return h?`<div class="note" style="margin:8px 0">🔗 ระบบที่เกี่ยวข้องในพื้นที่เดียวกัน (${esc(r.bld)})${h}</div>`:''}
 function linkTxt(){const[b,f,r]=editing.loc;if(!b)return'';const lv=r?2:f?1:0,a=[];CATS.forEach(c=>{const n=DATA[c.id].filter(x=>x._id!==editing.id&&matchLoc(c,x,b,f,r,lv)).length;if(n)a.push(`${c.name} ${n}`)});return a.length?'🔗 ตำแหน่งนี้มีอุปกรณ์อื่น: '+a.join(' · '):''}
-function initLoc(r){const K=LOC[cat.id];editing.loc=K.map(k=>k?nz(r[k]):'');fillLoc();const s=$('#x_f4');if(cat.id==='loadcenter'&&s)fillLine(s,r.f4)}
+function initLoc(r){const K=LOC[cat.id];editing.loc=K.map(k=>k?nz(r[k]):'');fillLoc();const s=$('#x_f4');if(cat.id==='loadcenter'&&s)fillLine(s,r.f4);const sb=$('#x_f6');if(cat.id==='loadcenter'&&sb)fillBrand(sb,r.f6)}
 async function locChange(s){const i=+s.dataset.lv;let v=s.value;if(v==='__new'){const n=await ask(['ชื่ออาคาร/สถานที่ใหม่','ชั้นใหม่','ชื่อห้องใหม่'][i]);v=nz(n)||s.dataset.prev||''}editing.loc[i]=v;for(let j=i+1;j<3;j++)editing.loc[j]='';fillLoc()}
 async function lineChange(s){if(s.value==='__new'){const n=await ask('ชื่อ Line ใหม่ (เช่น Normal, UPS, Gen)');fillLine(s,nz(n)||s.dataset.prev)}}
 const REQ={loadcenter:['f1','f2','f3','f4','f5','f8','f9'],ups:['bld','id','brand','model','kva','st'],generator:['f2','f4','f5','f6','f7','f8','f13','f15','f17'],lighting:['bld','room','type','qty'],emergency:['f1','f3','f4','f5','f7','f8']};
@@ -605,6 +609,7 @@ function field(x,v){
  if(cat.id==='ups'&&x.k==='kind')return `<div><label>${esc(x.l)}<select id="${id}"${ro}>${['UPS','STS'].map(o=>`<option${o===v?' selected':''}>${o}</option>`).join('')}</select></label></div>`;
  if(K.includes(x.k))return `<div><label>${esc(x.l)}${star}<select id="${id}" data-lv="${K.indexOf(x.k)}"${ro}></select></label></div>`;
  if(cat.id==='loadcenter'&&x.k==='f4')return `<div><label>${esc(x.l)}${star}<select id="${id}"${ro}></select></label></div>`;
+ if(cat.id==='loadcenter'&&x.k==='f6')return `<div><label>${esc(x.l)}${star}<select id="${id}"${ro}></select></label></div>`;
  let h;
  if(x.t==='u')h=uSel(id,v,ro);else if(x.t==='s')h=`<select id="${id}"${ro}><option></option>${x.o.map(o=>`<option${o==v?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
  else if(x.t==='x')h=`<textarea id="${id}"${ro}>${val}</textarea>`;
@@ -708,7 +713,7 @@ $('#delcat').onclick=async()=>{if(!canAdmin)return;const rows=DATA[cat.id].slice
  try{for(const r of rows)await rmv(cat.id,r._id)}catch(e){say('ลบไม่สำเร็จ: '+errTx(e))}render()};
 $('#md').onclick=e=>{const g=e.target.closest('[data-go]');if(g){cat=CATS.find(c=>c.id===g.dataset.c);$('#ov').hidden=true;render();openForm(g.dataset.go);return}
 const u=e.target.dataset.u,d=e.target.dataset.d;if(u){$('#big').src=u;$('#iv').hidden=false}if(d!=null){editing.ph.splice(+d,1);drawPh()}};
-$('#md').oninput=e=>{const w=e.target.closest('.ckr,.lr');if(w){const c=editing.ck[+w.dataset.i];c[e.target.dataset.k]=e.target.value;drawCks();ldPanel()}else if(e.target.id==='lsv')lsimRes();else if(['x_f7','x_f8','x_f15'].includes(e.target.id)&&cat.id==='loadcenter')ldPanel();else if(e.target.id==='x_f9')drawCks();else if(e.target.id==='x_kind')applyKind();else if(e.target.dataset.lv!=null)locChange(e.target);else if(e.target.id==='x_f4'&&cat.id==='loadcenter')lineChange(e.target)};
+$('#md').oninput=e=>{const w=e.target.closest('.ckr,.lr');if(w){const c=editing.ck[+w.dataset.i];c[e.target.dataset.k]=e.target.value;drawCks();ldPanel()}else if(e.target.id==='lsv')lsimRes();else if(['x_f7','x_f8','x_f15'].includes(e.target.id)&&cat.id==='loadcenter')ldPanel();else if(e.target.id==='x_f9')drawCks();else if(e.target.id==='x_kind')applyKind();else if(e.target.dataset.lv!=null)locChange(e.target);else if(e.target.id==='x_f4'&&cat.id==='loadcenter')lineChange(e.target);else if(e.target.id==='x_f6'&&cat.id==='loadcenter')brandChange(e.target)};
 $('#md').addEventListener('click',e=>{const x=e.target.dataset.x;if(x!=null){editing.ck.splice(+x,1);drawCk()}});
 $('#groups').addEventListener('toggle',e=>{const d=e.target;if(d.classList&&d.classList.contains('grp')&&!$('#q').value&&!$('#flt').value){const s=OPEN[cat.id]||(OPEN[cat.id]=new Set());d.open?s.add(d.dataset.g):s.delete(d.dataset.g)}},true);
 $('#tg').onclick=()=>{const a=[...document.querySelectorAll('.grp')],o=a.some(d=>!d.open);a.forEach(d=>d.open=o)};
