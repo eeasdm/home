@@ -874,16 +874,16 @@ function ckStat(){const t=+($('#x_f9')?.value)||0,u=editing.ck.filter(c=>c.st===
 function poleN(c){return{'2P':2,'3P':3}[c.pole]||1}
 function syncMeas(){const one=!ckPh3();['mb','mc'].forEach(k=>{const e=$('#x_'+k),d=e&&e.closest('div');if(d)d.style.display=one?'none':''});const a=$('#x_ma'),lb=a&&a.closest('label');if(lb&&lb.firstChild&&lb.firstChild.nodeType===3)lb.firstChild.nodeValue=one?'วัดจริง (A)':'วัดจริง เฟส A (A)'}
 function ckPh3(){return(+($('#x_f7')?.value))!==1}
-function ckCmp(x,y){const k=c=>{const s=ckts(c.no)[0]||0;return[s?(s%2?0:1):2,s||9999]},p=k(x),q=k(y);return p[0]-q[0]||p[1]-q[1]}
-function ckSort(a){return a.sort(ckCmp)}
+function ckCmp(x,y,one){const k=c=>{const s=ckts(c.no)[0]||0;return[s?(one?0:(s%2?0:1)):2,s||9999]},p=k(x),q=k(y);return p[0]-q[0]||p[1]-q[1]}
+function ckSort(a,one){return a.sort((x,y)=>ckCmp(x,y,one))}
 function ckCount(){const m={};editing.ck.forEach(c=>new Set(ckts(c.no)).forEach(n=>{m[n]=(m[n]||0)+1}));return m}
 // ตัวเลือก "ช่องเริ่มต้น" ของแถวนี้: อยู่ใน 1..จำนวนช่องทั้งหมด · ไม่ซ้ำกับแถวอื่น · 2P/3P ใช้ช่องฝั่งเดียวกัน (n, n+2, n+4) · เลขคี่ก่อนเลขคู่
 function ckOpts(c,m,t){const p=poleN(c),own=new Set(ckts(c.no)),free=n=>n>=1&&n<=t&&((m[n]||0)-(own.has(n)?1:0))<1,o=[],ph3=ckPh3();
- for(let s=1;s<=t;s++){const g=Array.from({length:p},(_,i)=>s+i*2);if(!g.every(free))continue;if(p===3&&ph3&&phOf(s)!==0)continue;o.push(g)}
+ for(let s=1;s<=t;s++){const g=Array.from({length:p},(_,i)=>s+i*(ph3?2:1));if(!g.every(free))continue;if(p===3&&ph3&&phOf(s)!==0)continue;o.push(g)}
  return o.filter(g=>g[0]%2).concat(o.filter(g=>!(g[0]%2)))}
 function ckPoleFix(c){const cur=ckts(c.no);if(!cur.length)return;const t=+($('#x_f9')?.value)||0,o=ckOpts(c,ckCount(),t),s=cur[0],g=o.find(x=>x[0]===s)||o.find(x=>x[0]%2===s%2)||o[0];if(g)c.no=g.join(',');else{c.no='';say('ไม่มีช่องว่างพอสำหรับ '+c.pole+' — กรุณาเลือกช่องใหม่ หรือตรวจ “จำนวนช่องทั้งหมด” ของตู้')}}
 function drawCks(){const s=ckStat(),p=s.t?Math.min(100,s.u/s.t*100):0,sl=new Set(editing.ck.flatMap(c=>ckts(c.no))).size,nn=editing.ck.filter(c=>!ckts(c.no).length).length;$('#cks').innerHTML=`<div>ทั้งหมด <b>${s.t}</b> ช่อง · ใช้งาน <b>${s.u}</b> · สำรอง ${s.s} · <b class="${s.m<=0?'bd':'ok'}">เหลือ ${s.m}</b> ช่อง · ระบุตำแหน่งแล้ว ${sl} ช่อง${nn?` · <span class="wn">ยังไม่ได้เลือกช่อง ${nn} วงจร</span>`:''}</div><div class="bar2"><i class="${s.m<=0&&s.t?'full':''}" style="width:${p}%"></i></div>`}
-function drawCk(){const ro=canEdit?'':' disabled',t=+($('#x_f9')?.value)||0,ph3=ckPh3();ckSort(editing.ck);const m=ckCount();if(!ph3)editing.ck.forEach(c=>{if([c.a,c.b,c.c].some(x=>x!==null&&x!==undefined&&x!=='')){c.a=va(c.a)+va(c.b)+va(c.c);c.b=null;c.c=null}});
+function drawCk(){const ro=canEdit?'':' disabled',t=+($('#x_f9')?.value)||0,ph3=ckPh3();ckSort(editing.ck,!ph3);const m=ckCount();if(!ph3)editing.ck.forEach(c=>{if([c.a,c.b,c.c].some(x=>x!==null&&x!==undefined&&x!=='')){c.a=va(c.a)+va(c.b)+va(c.c);c.b=null;c.c=null}});
  const inp=(c,k,cls,t,ph)=>`<td><input class="${cls||''}" data-k="${k}" value="${esc(c[k]??'')}"${t==='n'?' type="number" step="any" inputmode="decimal"':''}${ph?` placeholder="${ph}"`:''}${ro}></td>`,sel=(c,k,a)=>`<td><select data-k="${k}"${ro}>${a.map(o=>`<option${o===(c[k]||a[0])?' selected':''}>${o}</option>`).join('')}</select></td>`;
  const POLE=[['1P','1P · 1 ช่อง'],['2P','2P · 2 ช่อง'],['3P','3P · 3 ช่อง (3 เฟส)']];
   const poleSel=c=>`<td><select data-k="pole"${ro}>${POLE.map(([v,l])=>`<option value="${v}"${v===(c.pole||'1P')?' selected':''}>${l}</option>`).join('')}</select>${poleN(c)>1?`<span class="tg">${poleN(c)===3?'3 เฟส':'2 โพล'}</span>`:''}</td>`;
@@ -899,8 +899,8 @@ function drawCk(){const ro=canEdit?'':' disabled',t=+($('#x_f9')?.value)||0,ph3=
    for(let k=1;k<N;k++)h+=`<tr class="lx tm${k===N-1?' ge':''}" data-i="${i}">${lbl(k)}${va(k,0)}${va(k,1)}${va(k,2)}</tr>`;
    return h};
   let h='',p0=-1;
-  editing.ck.forEach((c,i)=>{const s=ckts(c.no)[0]||0,par=s?(s%2?0:1):2;
-   if(par!==p0){p0=par;h+=`<tr class="sh"><td colspan="${ph3?16:14}"><span class="gh">${['ช่องเลขคี่ (1, 3, 5 …)','ช่องเลขคู่ (2, 4, 6 …)','ยังไม่ได้เลือกช่อง'][par]}</span></td></tr>`}
+  editing.ck.forEach((c,i)=>{const s=ckts(c.no)[0]||0,par=s?(ph3?(s%2?0:1):3):2;
+   if(par!==p0){p0=par;if(par!==3)h+=`<tr class="sh"><td colspan="${ph3?16:14}"><span class="gh">${['ช่องเลขคี่ (1, 3, 5 …)','ช่องเลขคู่ (2, 4, 6 …)','ยังไม่ได้เลือกช่อง'][par]}</span></td></tr>`}
    h+=row(c,i)});
  $('#ck').innerHTML=editing.ck.length?`<div class="tw lst"><table><thead><tr><th>Pole (จำนวนช่อง)</th><th>CKT (ลำดับช่อง)</th><th>รายละเอียด (Description)</th>${ph3?'<th>เฟส A (VA)</th><th>เฟส B (VA)</th><th>เฟส C (VA)</th>':'<th>โหลด (VA)</th>'}<th>AT (A)</th><th>AF (A)</th><th>IC (kA)</th><th>สายไฟ (ตร.มม.)</th><th>ชนิด</th><th>ท่อ (นิ้ว)</th><th>ชนิด</th><th>สถานะ</th><th>ตรวจ</th><th></th></tr></thead><tbody>${h}</tbody></table></div>`:'<p class="mu">ยังไม่มีรายละเอียดช่อง — กด “+ เพิ่มช่อง”, “+ เพิ่มเบรกเกอร์ 3 เฟส (3P)” หรือ “สร้างช่องให้ครบตามจำนวนทั้งหมด”</p>';drawCks();ldPanel()}
 function openForm(id){
@@ -955,8 +955,8 @@ async function lcDocx(rows){
  const total=W.reduce((a,b)=>a+b,0);
  let body='';
  rows.forEach((r,ri)=>{
-  const ph=+r.f7===1?1:3,ck=ckSort((r._ck||[]).slice()),nm=nz(r.f5)||nz(r.f3)||'-',m=lmeas(r);
-  const cap0=+r.f9||0,occ=new Set();ck.forEach(c=>ckts(c.no).forEach(n=>occ.add(n)));let cks=ck.slice();for(let i=1;i<=cap0;i++)if(!occ.has(i))cks.push({no:String(i),_b:1});cks=ckSort(cks);cks=ckSort(cks.flatMap(c=>{const n=ckts(c.no);return n.length>1&&!c._b?n.map(k=>({...c,no:String(k),_p:ph===1?0:phOf(k)})):[c]}));
+  const ph=+r.f7===1?1:3,ck=ckSort((r._ck||[]).slice(),ph===1),nm=nz(r.f5)||nz(r.f3)||'-',m=lmeas(r);
+  const cap0=+r.f9||0,occ=new Set();ck.forEach(c=>ckts(c.no).forEach(n=>occ.add(n)));let cks=ck.slice();for(let i=1;i<=cap0;i++)if(!occ.has(i))cks.push({no:String(i),_b:1});cks=ckSort(cks,ph===1);cks=ckSort(cks.flatMap(c=>{const n=ckts(c.no);return n.length>1&&!c._b?n.map(k=>({...c,no:String(k),_p:ph===1?0:phOf(k)})):[c]}),ph===1);
   let sA=0,sB=0,sC=0;cks.forEach(c=>{sA+=va(c.a);sB+=va(c.b);sC+=va(c.c)});
   const tot=sA+sB+sC,cap=(+r.f9||cks.length);
   const loc=[nz(r.f3),nz(r.f1)&&('อาคาร '+nz(r.f1)),r.f2!=null&&r.f2!==''?('ชั้น '+r.f2):''].filter(Boolean).join(' ');
@@ -994,7 +994,7 @@ async function save(){
  const d={};cat.fields.forEach(x=>{const lc=LOC[cat.id].includes(x.k);let v=(lc?editing.loc[LOC[cat.id].indexOf(x.k)]:$('#x_'+x.k).value).trim();if(v==='__new')v='';d[x.k]=v===''?null:(lc?cv(v):(x.t==='n'?Number(v):v))});
  if(cat.id==='generator'){const bad=['f7','f27','f28','f30','f31'].some(k=>d[k]!=null&&d[k]<0)?'ขนาดเครื่อง/ปริมาณน้ำมันต้องไม่ติดลบ':d.f35!=null&&(d.f35<0||d.f35>100)?'เปอร์เซ็นต์โหลดต้องอยู่ระหว่าง 0–100':'';if(bad){if(sb){sb.disabled=false;sb.textContent='บันทึก'}say(bad);return}}
  if(cat.id==='ups'){let cs=null;d.kind=d.kind||'UPS';const hid=d.kind==='STS'?['UPS','แบตเตอรี่','บำรุงรักษา']:['STS'];cat.fields.forEach(x=>{if(x.sec)cs=x.sec;if(hid.includes(cs))d[x.k]=null})}
- d._ph=editing.ph;d._link=nz($('#lnk')&&$('#lnk').value)||null;d._by=me;if(cat.id==='loadcenter')d._ck=ckSort(editing.ck.filter(c=>c.no||c.amp||c.load||c.a||c.b||c.c));if(cat.id==='loadcenter'&&+d.f7===1){d.mb=null;d.mc=null}if(cat.id==='loadcenter'){const o=DATA.loadcenter.find(x=>x._id===editing.id)||{};const ch=['ma','mb','mc'].some(k=>(d[k]??null)!==(o[k]??null));if(ch&&(d.md??null)===(o.md??null)){const n=new Date();d.md=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0')}}d._upd=Date.now();d._o=editing.o??Date.now();
+ d._ph=editing.ph;d._link=nz($('#lnk')&&$('#lnk').value)||null;d._by=me;if(cat.id==='loadcenter')d._ck=ckSort(editing.ck.filter(c=>c.no||c.amp||c.load||c.a||c.b||c.c),+d.f7===1);if(cat.id==='loadcenter'&&+d.f7===1){d.mb=null;d.mc=null}if(cat.id==='loadcenter'){const o=DATA.loadcenter.find(x=>x._id===editing.id)||{};const ch=['ma','mb','mc'].some(k=>(d[k]??null)!==(o[k]??null));if(ch&&(d.md??null)===(o.md??null)){const n=new Date();d.md=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0')}}d._upd=Date.now();d._o=editing.o??Date.now();
  const id=editing.id||'n'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
  try{const K=LOC[cat.id];await ensurePlace(d[K[0]],K[1]?d[K[1]]:'',K[2]?d[K[2]]:'');if(cat.id==='loadcenter'&&d.f4)await addLine(nz(d.f4));if(db)await db.collection(cat.id).doc(id).set(d);else{const a=DATA[cat.id],i=a.findIndex(z=>z._id===id);i<0?a.push({...d,_id:id}):a[i]={...d,_id:id}}$('#ov').hidden=true;render()}catch(e){if(sb){sb.disabled=false;sb.textContent='บันทึก'}say('บันทึกไม่สำเร็จ: '+errTx(e))}
 }
@@ -1010,7 +1010,7 @@ function addCat(wb,c){
   if(c.id==='generator'){const g=gcalc(r),P=fx(),q=v=>v==null?'':R1(v);Object.assign(o,{'น้ำมันคงเหลือรวม (ลิตร)':q(g.tot),'กำลังไฟฟ้าที่ใช้ (kW)':q(g.kw),'อัตราสิ้นเปลือง (ลิตร/ชม.)':q(g.rate),'จ่ายไฟได้ (ชม.)':q(g.hrs),'จ่ายไฟได้ (วัน)':typeof g.days==='number'?Math.round(g.days*100)/100:(g.days||''),['ผ่าน '+P.h24+' ชม.']:g.p24||'',['ผ่าน '+P.h72+' ชม.']:g.p72||'',['น้ำมันที่ต้องมี '+P.h72+' ชม. (ลิตร)']:q(g.need),['ต้องเติมเพิ่มให้ถึง '+P.h72+' ชม. (ลิตร)']:q(g.add)})}
   o['ความครบถ้วน (%)']=compl(c.id,r);o['แจ้งเตือน']=alerts(c.id,r).join(', ');o['จำนวนรูป']=(r._ph||[]).length;o['ลิงก์โฟลเดอร์รูป']=r._link||'';o['แก้ไขล่าสุด']=r._upd?new Date(r._upd).toLocaleString('th-TH'):'';o['ผู้แก้ไข']=r._by||'';return o}));
  if(!rs.length)XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([f.map(x=>x.l)]),SN(c.name));
- if(c.id==='loadcenter')ap('LoadCenter_ช่อง',rs.flatMap(r=>{const q=lcalc(r);return (r._ck||[]).map((k,n)=>({k,n})).sort((x,y)=>ckCmp(x.k,y.k)).map(({k,n})=>({'อาคาร':r.f1,'ชั้น':r.f2,'สถานที่':r.f3,'Line':r.f4,'ชื่อตู้':r.f5,'CKT':k.no,'รายละเอียด (จ่ายให้)':k.load,'เฟส A (VA)':k.a??'','เฟส B (VA)':k.b??'','เฟส C (VA)':k.c??'','โพล':k.pole,'AT (A)':k.amp,'AF (A)':k.af??'','IC (kA)':k.ic??'','สายไฟ':k.cs??'','ชนิดสาย':k.ct??'','ท่อ':k.ds??'','ชนิดท่อ':k.dt??'','สถานะ':k.st,'โหลดสูงสุด (A)':q.rows[n].tot>0?R1(q.rows[n].I):'','ผลตรวจ':q.rows[n].st}))}));
+ if(c.id==='loadcenter')ap('LoadCenter_ช่อง',rs.flatMap(r=>{const q=lcalc(r);return (r._ck||[]).map((k,n)=>({k,n})).sort((x,y)=>ckCmp(x.k,y.k,+r.f7===1)).map(({k,n})=>({'อาคาร':r.f1,'ชั้น':r.f2,'สถานที่':r.f3,'Line':r.f4,'ชื่อตู้':r.f5,'CKT':k.no,'รายละเอียด (จ่ายให้)':k.load,'เฟส A (VA)':k.a??'','เฟส B (VA)':k.b??'','เฟส C (VA)':k.c??'','โพล':k.pole,'AT (A)':k.amp,'AF (A)':k.af??'','IC (kA)':k.ic??'','สายไฟ':k.cs??'','ชนิดสาย':k.ct??'','ท่อ':k.ds??'','ชนิดท่อ':k.dt??'','สถานะ':k.st,'โหลดสูงสุด (A)':q.rows[n].tot>0?R1(q.rows[n].I):'','ผลตรวจ':q.rows[n].st}))}));
  if(c.id==='lighting'){const t={};rs.forEach(r=>{const k=r.type||'ไม่ระบุ';t[k]=(t[k]||0)+(+r.qty||0)});ap('แสงสว่าง_ชนิดหลอด',Object.entries(t).map(([a,b])=>({'ชนิดหลอด':a,'รวม (หลอด)':b})))}
  if(c.id==='generator'){ap('Generator_ไส้กรอง',gfil(rs));ap('Generator_พื้นที่',garea(rs));ap('Generator_น้ำมันตามสถานที่',gsite(rs,1));ap('Generator_น้ำมันรายเครื่อง',gunit(rs,1));ap('Generator_อัตราสิ้นเปลือง',grate(1));ap('Generator_สมมติฐาน',gasm())}
  ap(c.id+'_รูปถ่าย',rs.flatMap(r=>(r._ph||[]).map((u,i)=>({'รายการ':labelOf(c,r),'รูปที่':i+1,'ลิงก์':new URL(u,location.href).href}))));
