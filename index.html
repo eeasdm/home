@@ -371,7 +371,7 @@ const LIST={loadcenter:['f4','f5','f6','f7','f8','f9','_slots','_ld','_lst','_me
 const GRP={loadcenter:'f1',ups:'bld',generator:'f2',lighting:'bld',emergency:'f1'};
 const fl=(a,b)=>`ชั้น ${a??'-'} · ${b||''}`;
 const SUB={loadcenter:r=>fl(r.f2,r.f3),ups:r=>fl(r.flr,r.room),generator:null,lighting:r=>fl(r.flr,r.room),emergency:r=>fl(r.f2,r.f3)};
-const OPEN={};const CKST=['ใช้งาน','สำรอง','ว่าง'];
+const OPEN={};const CKST=['ON','OFF','ว่าง'],ckSt=v=>v==='ใช้งาน'?'ON':v==='สำรอง'?'OFF':v;
 CATS.forEach(c=>c.list=LIST[c.id].concat(['_cp','_al']));
 let onlyAl=false,CUR=[],me='',upsTab='';
 const MASTER={id:'master',name:'สถานที่'},EXP=new Set(),dgS={r:null};
@@ -698,8 +698,8 @@ const gnote0=()=>{const n=GX().length;return n?`เครื่อง Generator 
 const LCX=()=>{if(cat.id!=='loadcenter'||!canEdit)return[];const out=[];
  DATA.loadcenter.forEach(r=>{const s=(SEED.loadcenter||[]).find(x=>x._ck&&x.f1===r.f1&&(x.f5===r.f5||(!has(r.f5)&&x.f5==='LP'&&x.f2==r.f2&&x.f4===r.f4)));if(!s)return;const u={};let ch=0;if(!has(r.f5)&&has(s.f5)){u.f5=s.f5;ch++}
   ['f7','f10','f11','f12','f13','f14','note'].forEach(k=>{if(has(s[k])&&!has(r[k])){u[k]=s[k];ch++}});
-  const ck=JSON.parse(JSON.stringify(r._ck||[]));
-  s._ck.forEach(sc=>{const e=ck.find(c=>String(c.no)===String(sc.no));if(!e){ck.push({...sc});ch++}else Object.keys(sc).forEach(k=>{if(!has(e[k])&&has(sc[k])){e[k]=sc[k];ch++}})});
+  const ck=JSON.parse(JSON.stringify(r._ck||[])).map(c=>({...c,st:ckSt(c.st)}));
+  s._ck.forEach(sc=>{const e=ck.find(c=>String(c.no)===String(sc.no));if(!e){ck.push({...sc,st:ckSt(sc.st)});ch++}else Object.keys(sc).forEach(k=>{if(!has(e[k])&&has(sc[k])){e[k]=sc[k];ch++}})});
   if(ch){u._ck=ck;out.push([r,u])}});return out};
 const lcnote=()=>{const n=LCX().length;return n?`ตู้ Load Center ${n} ตู้ยังไม่มีตารางโหลดวงจร — <button class="btn" id="lcfill">เติมจากไฟล์ Excel (${n} ตู้)</button> `:''};
 async function lcfill(){const Ls=LCX();if(!Ls.length||!await ok('เติมตารางโหลดวงจร (โหลดเฟส A/B/C, CB, สายไฟ) ให้ '+Ls.length+' ตู้? เติมเฉพาะช่องที่ยังว่าง ไม่เขียนทับข้อมูลเดิม'))return;
@@ -707,7 +707,7 @@ async function lcfill(){const Ls=LCX();if(!Ls.length||!await ok('เติมต
 async function gfill(){const Ls=GX();if(!Ls.length||!await ok('เติม % โหลดและน้ำมันคงเหลือจากไฟล์ Excel ให้ '+Ls.length+' เครื่อง? (เติมเฉพาะช่องที่ยังว่าง ไม่เขียนทับข้อมูลเดิม)'))return;
  try{for(const [r,u] of Ls){const d={...u,_upd:Date.now(),_by:me||'นำเข้าจาก Excel'};if(db)await db.collection('generator').doc(r._id).update(d);else Object.assign(r,d)}render()}catch(e){say('เติมข้อมูลไม่สำเร็จ: '+errTx(e))}}
 
-const ckU=r=>(r._ck||[]).filter(c=>c.st==='ใช้งาน').length;
+const ckU=r=>(r._ck||[]).filter(c=>ckSt(c.st)==='ON').length;
 function slotCell(r){const ck=r._ck||[],t=+r.f9||0;if(!ck.length)return`<span class="mu">ยังไม่ระบุช่อง</span>`;const u=ckU(r),m=t-u;return`ใช้ ${u}/${t} · <b class="${m<=0?'bd':'ok'}">เหลือ ${m}</b>`}
 function cell(k,r,fm){const v=r[k],l=esc(fm[k].l),id=cat.id;
  if(k==='_meas'){const m=lmeas(r);if(!m)return`<td class="e" data-l="${l}"></td>`;let dt='';if(r.md){const q=new Date(r.md);dt=isNaN(q)?r.md:q.toLocaleDateString('th-TH')}const ok=m.cl==='ok',un=m.cl==='mu';return`<td data-l="${l}" title="${esc(m.msgs.join(' · '))}"><b class="${ok?'ok':un?'mu':'bd'}">${(+r.f7===1?[r.ma]:[r.ma,r.mb,r.mc]).map(x=>x===null||x===undefined||x===''?'-':String(Math.round(va(x)*10)/10)).join(' / ')} A</b>`+(dt?`<div class="mu" style="margin:0">${dt}</div>`:'')+'</td>'}
@@ -731,7 +731,7 @@ const tmo=(p,ms)=>Promise.race([Promise.resolve(p),new Promise((_,rj)=>setTimeou
 const errTx=e=>{const m=String(e&&(e.code||e.message)||e||'');if(/permission|unauthorized/i.test(m))return'ไม่มีสิทธิ์ — ตรวจสอบ Rules ของ Realtime Database / Storage ใน Firebase Console';return(e&&e.message)||m};
 const W=p=>tmo(p,15000).catch(e=>{throw new Error(errTx(e))});
 const clean=d=>JSON.parse(JSON.stringify(d));
-const norm=v=>{['_ph','_ck'].forEach(k=>{if(v[k]&&!Array.isArray(v[k]))v[k]=Object.values(v[k])});return v};
+const norm=v=>{['_ph','_ck'].forEach(k=>{if(v[k]&&!Array.isArray(v[k]))v[k]=Object.values(v[k])});if(Array.isArray(v._ck))v._ck.forEach(c=>{if(c&&c.st)c.st=ckSt(c.st)});return v};
 function mkDb(rdb){
  let tt=null,lastC='';
  const touch=c=>{lastC=c||lastC;clearTimeout(tt);tt=setTimeout(()=>rdb.ref(BASE+'/meta').set({at:firebase.database.ServerValue.TIMESTAMP,by:me||'',cat:lastC}).catch(()=>{}),300)};
@@ -869,7 +869,7 @@ function field(x,v){
  else h=`<input id="${id}" value="${val}" type="${x.t==='n'?'number':x.t==='d'?'date':'text'}" step="any"${x.lst?' list="lamps"':''}${ro}>`;
  return `<div style="${x.t==='x'?'grid-column:1/-1':''}"><label>${esc(x.l)}${RQ().includes(x.k)?' *':''}${h}</label></div>`;
 }
-function ckStat(){const t=+($('#x_f9')?.value)||0,u=editing.ck.filter(c=>c.st==='ใช้งาน').length,s=editing.ck.filter(c=>c.st==='สำรอง').length;return{t,u,s,m:t-u}}
+function ckStat(){const t=+($('#x_f9')?.value)||0,u=editing.ck.filter(c=>ckSt(c.st)==='ON').length,s=editing.ck.filter(c=>ckSt(c.st)==='OFF').length;return{t,u,s,m:t-u}}
 /* ===== Load Center: เลือกช่อง/โพลด้วย selector · เรียงคี่→คู่ตามเลขช่อง · 3P แสดง 3 บรรทัดรวมกลุ่ม ===== */
 function poleN(c){return{'2P':2,'3P':3}[c.pole]||1}
 function syncMeas(){const one=!ckPh3();['mb','mc'].forEach(k=>{const e=$('#x_'+k),d=e&&e.closest('div');if(d)d.style.display=one?'none':''});const a=$('#x_ma'),lb=a&&a.closest('label');if(lb&&lb.firstChild&&lb.firstChild.nodeType===3)lb.firstChild.nodeValue=one?'วัดจริง (A)':'วัดจริง เฟส A (A)'}
@@ -882,7 +882,7 @@ function ckOpts(c,m,t){const p=poleN(c),own=new Set(ckts(c.no)),free=n=>n>=1&&n<
  for(let s=1;s<=t;s++){const g=Array.from({length:p},(_,i)=>s+i*(ph3?2:1));if(!g.every(free))continue;if(p===3&&ph3&&phOf(s)!==0)continue;o.push(g)}
  return o.filter(g=>g[0]%2).concat(o.filter(g=>!(g[0]%2)))}
 function ckPoleFix(c){const cur=ckts(c.no);if(!cur.length)return;const t=+($('#x_f9')?.value)||0,o=ckOpts(c,ckCount(),t),s=cur[0],g=o.find(x=>x[0]===s)||o.find(x=>x[0]%2===s%2)||o[0];if(g)c.no=g.join(',');else{c.no='';say('ไม่มีช่องว่างพอสำหรับ '+c.pole+' — กรุณาเลือกช่องใหม่ หรือตรวจ “จำนวนช่องทั้งหมด” ของตู้')}}
-function drawCks(){const s=ckStat(),p=s.t?Math.min(100,s.u/s.t*100):0,sl=new Set(editing.ck.flatMap(c=>ckts(c.no))).size,nn=editing.ck.filter(c=>!ckts(c.no).length).length;$('#cks').innerHTML=`<div>ทั้งหมด <b>${s.t}</b> ช่อง · ใช้งาน <b>${s.u}</b> · สำรอง ${s.s} · <b class="${s.m<=0?'bd':'ok'}">เหลือ ${s.m}</b> ช่อง · ระบุตำแหน่งแล้ว ${sl} ช่อง${nn?` · <span class="wn">ยังไม่ได้เลือกช่อง ${nn} วงจร</span>`:''}</div><div class="bar2"><i class="${s.m<=0&&s.t?'full':''}" style="width:${p}%"></i></div>`}
+function drawCks(){const s=ckStat(),p=s.t?Math.min(100,s.u/s.t*100):0,sl=new Set(editing.ck.flatMap(c=>ckts(c.no))).size,nn=editing.ck.filter(c=>!ckts(c.no).length).length;$('#cks').innerHTML=`<div>ทั้งหมด <b>${s.t}</b> ช่อง · ON <b>${s.u}</b> · OFF ${s.s} · <b class="${s.m<=0?'bd':'ok'}">เหลือ ${s.m}</b> ช่อง · ระบุตำแหน่งแล้ว ${sl} ช่อง${nn?` · <span class="wn">ยังไม่ได้เลือกช่อง ${nn} วงจร</span>`:''}</div><div class="bar2"><i class="${s.m<=0&&s.t?'full':''}" style="width:${p}%"></i></div>`}
 function drawCk(){const ro=canEdit?'':' disabled',t=+($('#x_f9')?.value)||0,ph3=ckPh3();ckSort(editing.ck,!ph3);const m=ckCount();if(!ph3)editing.ck.forEach(c=>{if([c.a,c.b,c.c].some(x=>x!==null&&x!==undefined&&x!=='')){c.a=va(c.a)+va(c.b)+va(c.c);c.b=null;c.c=null}});
  const inp=(c,k,cls,t,ph)=>`<td><input class="${cls||''}" data-k="${k}" value="${esc(c[k]??'')}"${t==='n'?' type="number" step="any" inputmode="decimal"':''}${ph?` placeholder="${ph}"`:''}${ro}></td>`,sel=(c,k,a)=>`<td><select data-k="${k}"${ro}>${a.map(o=>`<option${o===(c[k]||a[0])?' selected':''}>${o}</option>`).join('')}</select></td>`;
  const POLE=[['1P','1P · 1 ช่อง'],['2P','2P · 2 ช่อง'],['3P','3P · 3 ช่อง (3 เฟส)']];
@@ -904,7 +904,7 @@ function drawCk(){const ro=canEdit?'':' disabled',t=+($('#x_f9')?.value)||0,ph3=
    h+=row(c,i)});
  $('#ck').innerHTML=editing.ck.length?`<div class="tw lst"><table><thead><tr><th>Pole (จำนวนช่อง)</th><th>CKT (ลำดับช่อง)</th><th>รายละเอียด (Description)</th>${ph3?'<th>เฟส A (VA)</th><th>เฟส B (VA)</th><th>เฟส C (VA)</th>':'<th>โหลด (VA)</th>'}<th>AT (A)</th><th>AF (A)</th><th>IC (kA)</th><th>สายไฟ (ตร.มม.)</th><th>ชนิด</th><th>ท่อ (นิ้ว)</th><th>ชนิด</th><th>สถานะ</th><th>ตรวจ</th><th></th></tr></thead><tbody>${h}</tbody></table></div>`:'<p class="mu">ยังไม่มีรายละเอียดช่อง — กด “+ เพิ่มช่อง”, “+ เพิ่มเบรกเกอร์ 3 เฟส (3P)” หรือ “สร้างช่องให้ครบตามจำนวนทั้งหมด”</p>';drawCks();ldPanel()}
 function openForm(id){
- let r=id?DATA[cat.id].find(d=>d._id===id):{};if(cat.id==='ups'){r={...r};r.kind=r.kind||(id?kindOf(r):(upsTab==='STS'?'STS':'UPS'))}editing={id,ph:[...(r._ph||[])],o:r._o,ck:JSON.parse(JSON.stringify(r._ck||[]))};
+ let r=id?DATA[cat.id].find(d=>d._id===id):{};if(cat.id==='ups'){r={...r};r.kind=r.kind||(id?kindOf(r):(upsTab==='STS'?'STS':'UPS'))}editing={id,ph:[...(r._ph||[])],o:r._o,ck:JSON.parse(JSON.stringify(r._ck||[])).map(c=>({...c,st:ckSt(c.st)}))};
  const lc=cat.id==='loadcenter';
  let h=`<h2>${id?'แก้ไขรายการ':'เพิ่มรายการ'} — ${cat.name}</h2><div id="lk" class="mu"></div>${cat.id==='ups'?stsLinks(r)+relHtml(r):''}`,sec=null,open=false;
  cat.fields.forEach(x=>{if(x.sec&&x.sec!==sec||!open){if(open)h+='</div>';sec=x.sec||sec;h+=(sec?`<h3 data-s="${esc(sec)}">${esc(sec)}</h3>`:'')+`<div class="gr" data-s="${esc(sec||'')}">`;open=true}h+=field(x,r[x.k])});
@@ -919,7 +919,7 @@ function openForm(id){
  $('#cl').onclick=()=>$('#ov').hidden=true;if($('#lbf'))$('#lbf').onclick=()=>exportLabel([DATA.loadcenter.find(x=>x._id===editing.id)],$('#lbf'));
  if($('#sv'))$('#sv').onclick=save;if($('#del'))$('#del').onclick=del;
  if($('#lnko'))$('#lnko').onclick=()=>{const u=nz($('#lnk').value);if(!/^https?:\/\//i.test(u)){say('ยังไม่ได้ใส่ลิงก์ที่ขึ้นต้นด้วย https://');return}window.open(u,'_blank','noopener')};
- const addCk=pole=>{const c={no:'',amp:'',pole,load:'',st:'ใช้งาน'};editing.ck.push(c);drawCk();const e=document.querySelector('#ck tr.lr[data-i="'+editing.ck.indexOf(c)+'"] select[data-k="no"]');if(e){e.scrollIntoView({block:'center'});e.focus()}};if($('#ckadd'))$('#ckadd').onclick=()=>addCk('1P');if($('#ckadd3'))$('#ckadd3').onclick=()=>addCk('3P');
+ const addCk=pole=>{const c={no:'',amp:'',pole,load:'',st:'ON'};editing.ck.push(c);drawCk();const e=document.querySelector('#ck tr.lr[data-i="'+editing.ck.indexOf(c)+'"] select[data-k="no"]');if(e){e.scrollIntoView({block:'center'});e.focus()}};if($('#ckadd'))$('#ckadd').onclick=()=>addCk('1P');if($('#ckadd3'))$('#ckadd3').onclick=()=>addCk('3P');
  if($('#ckfill'))$('#ckfill').onclick=()=>{const t=+$('#x_f9').value||0,have=new Set(editing.ck.flatMap(c=>ckts(c.no)));if(!t){say('กรอก “จำนวนลูกย่อยในตู้” ก่อน (เช่น 24)');return}for(let g=0;g*6<t;g++)[1,3,5,2,4,6].forEach(o=>{const n=g*6+o;if(n<=t&&!have.has(n))editing.ck.push({no:String(n),amp:'',pole:'1P',load:'',st:'ว่าง'})});drawCk()};
 }
 function drawPh(){
@@ -1010,7 +1010,7 @@ function addCat(wb,c){
   if(c.id==='generator'){const g=gcalc(r),P=fx(),q=v=>v==null?'':R1(v);Object.assign(o,{'น้ำมันคงเหลือรวม (ลิตร)':q(g.tot),'กำลังไฟฟ้าที่ใช้ (kW)':q(g.kw),'อัตราสิ้นเปลือง (ลิตร/ชม.)':q(g.rate),'จ่ายไฟได้ (ชม.)':q(g.hrs),'จ่ายไฟได้ (วัน)':typeof g.days==='number'?Math.round(g.days*100)/100:(g.days||''),['ผ่าน '+P.h24+' ชม.']:g.p24||'',['ผ่าน '+P.h72+' ชม.']:g.p72||'',['น้ำมันที่ต้องมี '+P.h72+' ชม. (ลิตร)']:q(g.need),['ต้องเติมเพิ่มให้ถึง '+P.h72+' ชม. (ลิตร)']:q(g.add)})}
   o['ความครบถ้วน (%)']=compl(c.id,r);o['แจ้งเตือน']=alerts(c.id,r).join(', ');o['จำนวนรูป']=(r._ph||[]).length;o['ลิงก์โฟลเดอร์รูป']=r._link||'';o['แก้ไขล่าสุด']=r._upd?new Date(r._upd).toLocaleString('th-TH'):'';o['ผู้แก้ไข']=r._by||'';return o}));
  if(!rs.length)XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([f.map(x=>x.l)]),SN(c.name));
- if(c.id==='loadcenter')ap('LoadCenter_ช่อง',rs.flatMap(r=>{const q=lcalc(r);return (r._ck||[]).map((k,n)=>({k,n})).sort((x,y)=>ckCmp(x.k,y.k,+r.f7===1)).map(({k,n})=>({'อาคาร':r.f1,'ชั้น':r.f2,'สถานที่':r.f3,'Line':r.f4,'ชื่อตู้':r.f5,'CKT':k.no,'รายละเอียด (จ่ายให้)':k.load,'เฟส A (VA)':k.a??'','เฟส B (VA)':k.b??'','เฟส C (VA)':k.c??'','โพล':k.pole,'AT (A)':k.amp,'AF (A)':k.af??'','IC (kA)':k.ic??'','สายไฟ':k.cs??'','ชนิดสาย':k.ct??'','ท่อ':k.ds??'','ชนิดท่อ':k.dt??'','สถานะ':k.st,'โหลดสูงสุด (A)':q.rows[n].tot>0?R1(q.rows[n].I):'','ผลตรวจ':q.rows[n].st}))}));
+ if(c.id==='loadcenter')ap('LoadCenter_ช่อง',rs.flatMap(r=>{const q=lcalc(r);return (r._ck||[]).map((k,n)=>({k,n})).sort((x,y)=>ckCmp(x.k,y.k,+r.f7===1)).map(({k,n})=>({'อาคาร':r.f1,'ชั้น':r.f2,'สถานที่':r.f3,'Line':r.f4,'ชื่อตู้':r.f5,'CKT':k.no,'รายละเอียด (จ่ายให้)':k.load,'เฟส A (VA)':k.a??'','เฟส B (VA)':k.b??'','เฟส C (VA)':k.c??'','โพล':k.pole,'AT (A)':k.amp,'AF (A)':k.af??'','IC (kA)':k.ic??'','สายไฟ':k.cs??'','ชนิดสาย':k.ct??'','ท่อ':k.ds??'','ชนิดท่อ':k.dt??'','สถานะ':ckSt(k.st),'โหลดสูงสุด (A)':q.rows[n].tot>0?R1(q.rows[n].I):'','ผลตรวจ':q.rows[n].st}))}));
  if(c.id==='lighting'){const t={};rs.forEach(r=>{const k=r.type||'ไม่ระบุ';t[k]=(t[k]||0)+(+r.qty||0)});ap('แสงสว่าง_ชนิดหลอด',Object.entries(t).map(([a,b])=>({'ชนิดหลอด':a,'รวม (หลอด)':b})))}
  if(c.id==='generator'){ap('Generator_ไส้กรอง',gfil(rs));ap('Generator_พื้นที่',garea(rs));ap('Generator_น้ำมันตามสถานที่',gsite(rs,1));ap('Generator_น้ำมันรายเครื่อง',gunit(rs,1));ap('Generator_อัตราสิ้นเปลือง',grate(1));ap('Generator_สมมติฐาน',gasm())}
  ap(c.id+'_รูปถ่าย',rs.flatMap(r=>(r._ph||[]).map((u,i)=>({'รายการ':labelOf(c,r),'รูปที่':i+1,'ลิงก์':new URL(u,location.href).href}))));
