@@ -37,7 +37,8 @@ table{border-collapse:collapse;width:100%;font-size:14px}
 th,td{padding:7px 10px;border-bottom:1px solid var(--bd);text-align:left;white-space:nowrap}
 th{background:var(--bg);position:sticky;top:0;color:var(--mu);font-weight:600}
 tbody tr{cursor:pointer}tbody tr:hover{background:var(--bg)}
-.mu{color:var(--mu);font-size:13px}.pill{padding:1px 8px;border-radius:99px;border:1px solid var(--bd);font-size:12px}
+.mu{color:var(--mu);font-size:13px}
+select.sc-on{background:color-mix(in srgb,var(--ok) 20%,transparent);color:var(--ok);font-weight:700}select.sc-off{background:color-mix(in srgb,var(--bad) 20%,transparent);color:var(--bad);font-weight:700}.pill{padding:1px 8px;border-radius:99px;border:1px solid var(--bd);font-size:12px}
 .bd{color:var(--bad)}
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;justify-content:center;align-items:flex-start;overflow:auto;padding:20px 10px;z-index:20}
 .ov[hidden]{display:none}
@@ -371,7 +372,7 @@ const LIST={loadcenter:['f4','f5','f6','f7','f8','f9','_slots','_ld','_lst','_me
 const GRP={loadcenter:'f1',ups:'bld',generator:'f2',lighting:'bld',emergency:'f1'};
 const fl=(a,b)=>`ชั้น ${a??'-'} · ${b||''}`;
 const SUB={loadcenter:r=>fl(r.f2,r.f3),ups:r=>fl(r.flr,r.room),generator:null,lighting:r=>fl(r.flr,r.room),emergency:r=>fl(r.f2,r.f3)};
-const OPEN={};const CKST=['ON','OFF','ว่าง'],ckSt=v=>v==='ใช้งาน'?'ON':v==='สำรอง'?'OFF':v;
+const OPEN={};const scCls=v=>v==='ON'?'sc-on':v==='OFF'?'sc-off':'',CKST=['ON','OFF','ว่าง'],ckSt=v=>v==='ใช้งาน'?'ON':v==='สำรอง'?'OFF':v;
 CATS.forEach(c=>c.list=LIST[c.id].concat(['_cp','_al']));
 let onlyAl=false,CUR=[],me='',upsTab='';
 const MASTER={id:'master',name:'สถานที่'},EXP=new Set(),dgS={r:null};
@@ -884,7 +885,7 @@ function ckOpts(c,m,t){const p=poleN(c),own=new Set(ckts(c.no)),free=n=>n>=1&&n<
 function ckPoleFix(c){const cur=ckts(c.no);if(!cur.length)return;const t=+($('#x_f9')?.value)||0,o=ckOpts(c,ckCount(),t),s=cur[0],g=o.find(x=>x[0]===s)||o.find(x=>x[0]%2===s%2)||o[0];if(g)c.no=g.join(',');else{c.no='';say('ไม่มีช่องว่างพอสำหรับ '+c.pole+' — กรุณาเลือกช่องใหม่ หรือตรวจ “จำนวนช่องทั้งหมด” ของตู้')}}
 function drawCks(){const s=ckStat(),p=s.t?Math.min(100,s.u/s.t*100):0,sl=new Set(editing.ck.flatMap(c=>ckts(c.no))).size,nn=editing.ck.filter(c=>!ckts(c.no).length).length;$('#cks').innerHTML=`<div>ทั้งหมด <b>${s.t}</b> ช่อง · ON <b>${s.u}</b> · OFF ${s.s} · <b class="${s.m<=0?'bd':'ok'}">เหลือ ${s.m}</b> ช่อง · ระบุตำแหน่งแล้ว ${sl} ช่อง${nn?` · <span class="wn">ยังไม่ได้เลือกช่อง ${nn} วงจร</span>`:''}</div><div class="bar2"><i class="${s.m<=0&&s.t?'full':''}" style="width:${p}%"></i></div>`}
 function drawCk(){const ro=canEdit?'':' disabled',t=+($('#x_f9')?.value)||0,ph3=ckPh3();ckSort(editing.ck,!ph3);const m=ckCount();if(!ph3)editing.ck.forEach(c=>{if([c.a,c.b,c.c].some(x=>x!==null&&x!==undefined&&x!=='')){c.a=va(c.a)+va(c.b)+va(c.c);c.b=null;c.c=null}});
- const inp=(c,k,cls,t,ph)=>`<td><input class="${cls||''}" data-k="${k}" value="${esc(c[k]??'')}"${t==='n'?' type="number" step="any" inputmode="decimal"':''}${ph?` placeholder="${ph}"`:''}${ro}></td>`,sel=(c,k,a)=>`<td><select data-k="${k}"${ro}>${a.map(o=>`<option${o===(c[k]||a[0])?' selected':''}>${o}</option>`).join('')}</select></td>`;
+ const inp=(c,k,cls,t,ph)=>`<td><input class="${cls||''}" data-k="${k}" value="${esc(c[k]??'')}"${t==='n'?' type="number" step="any" inputmode="decimal"':''}${ph?` placeholder="${ph}"`:''}${ro}></td>`,sel=(c,k,a)=>`<td><select data-k="${k}"${k==='st'?` class="sc ${scCls(c[k]||a[0])}"`:''}${ro}>${a.map(o=>`<option${o===(c[k]||a[0])?' selected':''}>${o}</option>`).join('')}</select></td>`;
  const POLE=[['1P','1P · 1 ช่อง'],['2P','2P · 2 ช่อง'],['3P','3P · 3 ช่อง (3 เฟส)']];
   const poleSel=c=>`<td><select data-k="pole"${ro}>${POLE.map(([v,l])=>`<option value="${v}"${v===(c.pole||'1P')?' selected':''}>${l}</option>`).join('')}</select>${poleN(c)>1?`<span class="tg">${poleN(c)===3?'3 เฟส':'2 โพล'}</span>`:''}</td>`;
  const lab=g=>g.join('-')+(ph3?' ('+g.map(n=>PHN[phOf(n)]).join('')+')':'');
@@ -1049,7 +1050,7 @@ $('#delcat').onclick=async()=>{if(!canAdmin)return;const rows=DATA[cat.id].slice
  try{for(const r of rows)await rmv(cat.id,r._id)}catch(e){say('ลบไม่สำเร็จ: '+errTx(e))}render()};
 $('#md').onclick=e=>{const g=e.target.closest('[data-go]');if(g){cat=CATS.find(c=>c.id===g.dataset.c);$('#ov').hidden=true;render();openForm(g.dataset.go);return}
 const u=e.target.dataset.u,d=e.target.dataset.d;if(u){$('#big').src=u;$('#iv').hidden=false}if(d!=null){editing.ph.splice(+d,1);drawPh()}};
-$('#md').oninput=e=>{const w=e.target.closest('.ckr,.lr,.lx');if(w){const c=editing.ck[+w.dataset.i],k=e.target.dataset.k;c[k]=e.target.value;if(e.target.tagName==='SELECT'&&(k==='no'||k==='pole')){if(k==='pole')ckPoleFix(c);drawCk()}else{drawCks();ldPanel()}}else if(e.target.id==='lsv')lsimRes();else if(['x_f7','x_f8','x_f15'].includes(e.target.id)&&cat.id==='loadcenter'){ldPanel();if(e.target.id==='x_f7'){syncMeas();if($('#ck'))drawCk()}}else if(e.target.id==='x_f9'){if($('#cks'))drawCks();if($('#ck'))drawCk()}else if(e.target.id==='x_kind')applyKind();else if(e.target.dataset.lv!=null)locChange(e.target);else if(e.target.id==='x_f4'&&cat.id==='loadcenter')lineChange(e.target);else if(e.target.id==='x_f6'&&cat.id==='loadcenter')brandChange(e.target)};
+$('#md').oninput=e=>{const w=e.target.closest('.ckr,.lr,.lx');if(w){const c=editing.ck[+w.dataset.i],k=e.target.dataset.k;c[k]=e.target.value;if(k==='st')e.target.className='sc '+scCls(e.target.value);if(e.target.tagName==='SELECT'&&(k==='no'||k==='pole')){if(k==='pole')ckPoleFix(c);drawCk()}else{drawCks();ldPanel()}}else if(e.target.id==='lsv')lsimRes();else if(['x_f7','x_f8','x_f15'].includes(e.target.id)&&cat.id==='loadcenter'){ldPanel();if(e.target.id==='x_f7'){syncMeas();if($('#ck'))drawCk()}}else if(e.target.id==='x_f9'){if($('#cks'))drawCks();if($('#ck'))drawCk()}else if(e.target.id==='x_kind')applyKind();else if(e.target.dataset.lv!=null)locChange(e.target);else if(e.target.id==='x_f4'&&cat.id==='loadcenter')lineChange(e.target);else if(e.target.id==='x_f6'&&cat.id==='loadcenter')brandChange(e.target)};
 $('#md').addEventListener('click',e=>{const x=e.target.dataset.x;if(x!=null){editing.ck.splice(+x,1);drawCk()}});
 $('#groups').addEventListener('toggle',e=>{const d=e.target;if(d.classList&&d.classList.contains('grp')&&!$('#q').value&&!$('#flt').value&&!SITEF){const s=OPEN[cat.id]||(OPEN[cat.id]=new Set());d.open?s.add(d.dataset.g):s.delete(d.dataset.g)}},true);
 $('#tg').onclick=()=>{const a=[...document.querySelectorAll('.grp')],o=a.some(d=>!d.open);a.forEach(d=>d.open=o)};
