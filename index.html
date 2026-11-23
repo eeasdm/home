@@ -710,7 +710,7 @@ async function gfill(){const Ls=GX();if(!Ls.length||!await ok('เติม % �
 const ckU=r=>(r._ck||[]).filter(c=>c.st==='ใช้งาน').length;
 function slotCell(r){const ck=r._ck||[],t=+r.f9||0;if(!ck.length)return`<span class="mu">ยังไม่ระบุช่อง</span>`;const u=ckU(r),m=t-u;return`ใช้ ${u}/${t} · <b class="${m<=0?'bd':'ok'}">เหลือ ${m}</b>`}
 function cell(k,r,fm){const v=r[k],l=esc(fm[k].l),id=cat.id;
- if(k==='_meas'){const m=lmeas(r);if(!m)return`<td class="e" data-l="${l}"></td>`;let dt='';if(r.md){const q=new Date(r.md);dt=isNaN(q)?r.md:q.toLocaleDateString('th-TH')}return`<td data-l="${l}" style="min-width:190px">`+m.v.map(x=>gauge(+r.f7===1?'รวม':x[0],x[1],m.main||null,1)).join('')+`<div><b class="${m.cl}">${m.st}</b>${m.msgs.length&&m.cl!=='ok'?` <span class="mu" style="display:inline;margin:0">· ${m.msgs.join(' · ')}</span>`:''}</div>`+(dt?`<div class="mu" style="margin:0">อัพเดท ${dt}</div>`:'<div class="mu" style="margin:0">ไม่ระบุวันที่วัด</div>')+'</td>'}
+ if(k==='_meas'){const m=lmeas(r);if(!m)return`<td class="e" data-l="${l}"></td>`;let dt='';if(r.md){const q=new Date(r.md);dt=isNaN(q)?r.md:q.toLocaleDateString('th-TH')}const ok=m.cl==='ok',un=m.cl==='mu';return`<td data-l="${l}" title="${esc(m.msgs.join(' · '))}"><b class="${ok?'ok':un?'mu':'bd'}">${ok?'ปกติ':un?'ไม่ทราบ CB Main':'ไม่ปกติ'}</b>`+(dt?`<div class="mu" style="margin:0">${dt}</div>`:'')+'</td>'}
  if(['_ld','_lst','_imb'].includes(k)){const c=lcalc(r);let t='',cl='';if(k==='_ld'&&c.has)t=f0(c.tot);else if(k==='_lst'&&c.has){const ph=c.ph===1?['A']:PHN;return`<td data-l="${l}" style="min-width:190px">`+(c.main?ph.map(p=>gauge(c.ph===1?'รวม':p,c.I[p],c.main,1)).join(''):'<span class="mu">ยังไม่ทราบ CB Main</span>')+'</td>'}else if(k==='_imb'&&c.imbS){t=c.imbS+' '+f1(c.imb)+'%';cl=lcCls(c.imbS)}return t?`<td class="${cl}" data-l="${l}">${esc(t)}</td>`:`<td class="e" data-l="${l}"></td>`}
  if(['_hrs','_s24','_s72','_add'].includes(k)){const c=gcalc(r);const t=k==='_hrs'?f1(c.hrs):k==='_s24'?c.p24:k==='_s72'?c.p72:f0(c.add);return(t==null||t==='')?`<td class="e" data-l="${l}"></td>`:`<td class="${k==='_s24'||k==='_s72'?pc(t):k==='_add'&&c.add>0?'bd':''}" data-l="${l}">${esc(t)}</td>`}
  if(k==='_kind')return`<td data-l="${l}"><span class="pill">${kindOf(r)}</span></td>`;
@@ -817,7 +817,7 @@ function render0(){
  sh.forEach(r=>{const g=r[gk]??'(ไม่ระบุ)';if(!map.has(g))map.set(g,[]);map.get(g).push(r)});
  if(!OPEN[cat.id]&&rows.length)OPEN[cat.id]=new Set(rows.length<=40?[...map.keys()]:[...map.keys()].slice(0,1));
  const op=OPEN[cat.id]||new Set(),force=!!(q||fv||onlyAl||SITEF);
- const cols=cat.id==='ups'?upsCols():cat.list;const thead='<thead><tr><th>#</th>'+cols.map(k=>`<th>${esc(fm[k].l)}</th>`).join('')+'<th>รูป</th></tr></thead>';
+ const cols=cat.id==='ups'?upsCols():cat.list;const thead='<thead><tr><th>#</th>'+cols.map(k=>{const L=fm[k].l,S=cat.id==='loadcenter'?LCSH[k]||LCSH[L]:null;return S?`<th title="${esc(L)}">${S}</th>`:`<th>${esc(L)}</th>`}).join('')+'<th>รูป</th></tr></thead>';
  let html='';
  map.forEach((arr,g)=>{
   if(sub)arr.sort((a,b)=>sub(a).localeCompare(sub(b),'th',{numeric:true}));
@@ -934,6 +934,7 @@ async function upload(e){
   if(st)st.textContent=fs.length?'อัพโหลดเสร็จแล้ว — กด "บันทึก" เพื่อบันทึกรูปกับรายการนี้':'';e.target.value='';
 }
 // ===== ป้ายตู้ Load Schedule (.docx) =====
+const LCSH={f8:'CB Main (A)',f9:'ลูกย่อย',_slots:'ช่อง ใช้/เหลือ',_ld:'โหลดรวม (VA)',_lst:'กระแสเฟส / CB (A)',_meas:'วัดจริง',_imb:'สมดุลเฟส'};
 function lmeas(r){const P=LSP,ph=+r.f7===1?[['A','ma']]:[['A','ma'],['B','mb'],['C','mc']],v=ph.map(x=>[x[0],r[x[1]]===null||r[x[1]]===undefined||r[x[1]]===''?null:va(r[x[1]])]).filter(x=>x[1]!==null);
  if(!v.length)return null;const main=va(r.f8),I=v.map(x=>x[1]),mx=Math.max(...I),o={v,main,mx,msgs:[],st:'ปกติ',cl:'ok'};
  const up=(s,c)=>{const rk={ok:0,wn:1,bd:2};if(rk[c]>rk[o.cl]){o.st=s;o.cl=c}};
@@ -954,7 +955,7 @@ async function lcDocx(rows){
  let body='';
  rows.forEach((r,ri)=>{
   const ph=+r.f7===1?1:3,ck=ckSort((r._ck||[]).slice()),nm=nz(r.f5)||nz(r.f3)||'-',m=lmeas(r);
-  const cap0=+r.f9||0,occ=new Set();ck.forEach(c=>ckts(c.no).forEach(n=>occ.add(n)));let cks=ck.slice();for(let i=1;i<=cap0;i++)if(!occ.has(i))cks.push({no:String(i),_b:1});cks=ckSort(cks);
+  const cap0=+r.f9||0,occ=new Set();ck.forEach(c=>ckts(c.no).forEach(n=>occ.add(n)));let cks=ck.slice();for(let i=1;i<=cap0;i++)if(!occ.has(i))cks.push({no:String(i),_b:1});cks=ckSort(cks);cks=ckSort(cks.flatMap(c=>{const n=ckts(c.no);return n.length>1&&!c._b?n.map(k=>({...c,no:String(k),_p:ph===1?0:phOf(k)})):[c]}));
   let sA=0,sB=0,sC=0;cks.forEach(c=>{sA+=va(c.a);sB+=va(c.b);sC+=va(c.c)});
   const tot=sA+sB+sC,cap=(+r.f9||cks.length);
   const loc=[nz(r.f3),nz(r.f1)&&('อาคาร '+nz(r.f1)),r.f2!=null&&r.f2!==''?('ชั้น '+r.f2):''].filter(Boolean).join(' ');
@@ -965,19 +966,15 @@ async function lcDocx(rows){
   const H=(a,o)=>tc(a,{b:1,sz:15,...o});
   t+=tr(tc('CKT N0.',{c0:0,vm:'r',b:1,sz:15})+tc('DESCRIPTION',{c0:1,vm:'r',b:1,sz:15})+H('LOAD IN VA.',{c0:2,span:3})+H('CIRCUIT BREAKER',{c0:5,span:4})+H('CONDUCT ( )',{c0:9,span:2})+H('CONDUIT (Inc)',{c0:11,span:2}),300);
   t+=tr(tc('',{c0:0,vm:'c'})+tc('',{c0:1,vm:'c'})+['PHASE A','PHASE B','PHASE C','POLE','AT.','AF.','IC.','SIZE','TYPE','SIZE','TYPE'].map((h,i)=>H(h,{c0:i+2})).join(''),300);
-  cks.forEach(c=>{const sp=false,v=[c.a,c.b,c.c].map(x=>sp?'-':(va(x)?num(x):''));
+  cks.forEach(c=>{const sp=false,v=[c.a,c.b,c.c].map((x,i)=>sp?'-':(c._p!==undefined&&c._p!==i?'':(va(x)?num(x):'')));
    const pole=c._b?'':(({'2P':'2','3P':'3'})[c.pole]||'1');
    t+=tr([tc(c.no,{c0:0,sz:15}),tc(nz(c.load)||(sp?'SPARE':''),{c0:1,al:'left',sz:15}),...v.map((x,i)=>tc(x,{c0:2+i,sz:15})),tc(pole,{c0:5,sz:15}),tc(c.amp??'',{c0:6,sz:15}),tc(c.af??'',{c0:7,sz:15}),tc(c.ic??'',{c0:8,sz:15}),tc(c.cs??'',{c0:9,sz:14}),tc(c.ct??'',{c0:10,sz:14}),tc(c.ds??'',{c0:11,sz:14}),tc(c.dt??'',{c0:12,sz:14})].join(''),340)});
   const mdb='MAIN CONNECTED '+nz(r.f10);
   t+=tr(tc(mdb,{c0:0,span:2,vm:'r',sz:15})+tc(num(sA),{c0:2,sz:15})+tc(num(sB),{c0:3,sz:15})+tc(num(sC),{c0:4,sz:15})+tc('MAIN CB.',{c0:5,span:4,sz:15})+tc('MAIN CABLE',{c0:9,span:2,sz:15})+tc('MAIN CABLE LADDER',{c0:11,span:2,sz:15}),300);
   t+=tr(tc('',{c0:0,span:2,vm:'c'})+tc(num(tot),{c0:2,span:3,sz:15,b:1})+tc(ph,{c0:5,sz:15})+tc(r.f8??'',{c0:6,sz:15})+tc(r.f11??'',{c0:7,sz:15})+tc(r.f12??'',{c0:8,sz:15})+tc(r.f13??'',{c0:9,span:2,sz:14})+tc(r.f14??'',{c0:11,span:2,sz:14}),340);
   t+='</w:tbl>';
-  const vv=m?(ph===1?[m.v[0][1]]:['A','B','C'].map(p=>(m.v.find(x=>x[0]===p)||[0,null])[1])):null;
-  const fmt=x=>x===null||x===undefined?'__':String(Math.round(x*10)/10);
-  const foot=par(run('**** กระแสที่วัดได้ '+(ph===1?'':'เฟส ABC ')+(vv?vv.map(fmt).join(' / '):'__ / __ / __')+'  (A.)',{b:1,sz:18})+tab+run('UPDATE '+(thD(r.md)||'__/__/__'),{b:1,sz:18}),{tabs:7600,sp:60});
-  const stl=m?par(run('สถานะ: '+m.st+(m.msgs.length?' ('+m.msgs.join(', ')+')':''),{b:1,sz:18}),{sp:20}):'';
   const brk=ri<rows.length-1?'<w:p><w:r><w:br w:type="page"/></w:r></w:p>':'';
-  body+=par(run('PANEL N0: '+nm,{b:1,sz:32}),{al:'center',sp:80})+t+foot+stl+brk});
+  body+=par(run('PANEL N0: '+nm,{b:1,sz:32}),{al:'center',sp:80})+t+brk});
  const doc=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="567" w:right="720" w:bottom="567" w:left="720" w:header="400" w:footer="400" w:gutter="0"/></w:sectPr></w:body></w:document>`;
  const z=new JSZip();
  z.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>');
